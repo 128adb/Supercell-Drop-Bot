@@ -30,35 +30,38 @@ MAX_BUY_ATTEMPTS = 5
 # ─── Constants ────────────────────────────────────────────────────────────────
 
 _CONFIRM_PROMPT = (
-    "✅ Thank you for your purchase!\n\n"
-    "To receive your account credentials automatically, please reply with:\n\n"
-    "no errors\n\n"
-    "(This confirms your payment was intentional and the delivery system is working.)"
+    "✅ Спасибо за покупку!\n\n"
+    "Чтобы получить данные от аккаунта автоматически, ответьте:\n\n"
+    "нет ошибок\n\n"
+    "(Это подтверждает, что оплата была намеренной и система доставки работает.)"
 )
 
 _FAQ_REPLIES: list[tuple[list[str], str]] = [
     (
-        ["how", "connect", "login", "start", "access", "use"],
-        "💡 To receive your account credentials, simply reply with:\n\n*no errors*",
+        ["как", "подключить", "войти", "начать", "доступ", "использовать",
+         "how", "connect", "login", "start", "access", "use"],
+        "💡 Чтобы получить данные от аккаунта, просто ответьте:\n\n*нет ошибок*",
     ),
     (
-        ["when", "where", "get", "send", "credentials", "account", "password", "email"],
-        "📦 Your credentials will be sent automatically once you confirm:\n\n*no errors*",
+        ["когда", "где", "получить", "отправить", "данные", "пароль", "почта", "аккаунт",
+         "when", "where", "get", "send", "credentials", "account", "password", "email"],
+        "📦 Данные будут отправлены автоматически после подтверждения:\n\n*нет ошибок*",
     ),
     (
-        ["problem", "help", "stuck", "error", "issue", "not working"],
-        "🔧 Please confirm your purchase by replying:\n\n*no errors*\n\nCredentials will be delivered instantly!",
+        ["проблема", "помогите", "помоги", "ошибка", "не работает", "застрял",
+         "problem", "help", "stuck", "error", "issue", "not working"],
+        "🔧 Подтвердите покупку, ответив:\n\n*нет ошибок*\n\nДанные придут мгновенно!",
     ),
 ]
 
 # Strings found in messages sent BY the bot (used to filter them out)
 _BOT_MESSAGE_MARKERS = [
-    "thank you for your purchase",
-    "reply with:\n\nno errors",
-    "to receive your account credentials",
-    "credentials will be sent",
-    "📧 login:",
-    "🔑 password:",
+    "спасибо за покупку",
+    "ответьте:\n\nнет ошибок",
+    "данные от аккаунта",
+    "данные будут отправлены",
+    "📧 логин:",
+    "🔑 пароль:",
 ]
 
 
@@ -123,9 +126,9 @@ async def run(bot: Bot) -> None:
                 log.error("Failed to fetch order page %s: %s", order.order_id, e)
                 continue
 
-            # ── Check if buyer already replied "no errors" ────────────────────
+            # ── Check if buyer already replied "нет ошибок" ──────────────────
             confirmed = any(
-                "no errors" in msg["text"].lower()
+                "нет ошибок" in msg["text"].lower()
                 for msg in page.messages
                 if not _is_bot_message(msg["text"])
             )
@@ -149,7 +152,7 @@ async def run(bot: Bot) -> None:
             if not confirmed and order.order_id not in _faq_replied:
                 buyer_messages = [
                     m for m in page.messages
-                    if not _is_bot_message(m["text"]) and "no errors" not in m["text"].lower()
+                    if not _is_bot_message(m["text"]) and "нет ошибок" not in m["text"].lower()
                 ]
                 if buyer_messages:
                     last_text = buyer_messages[-1]["text"].lower()
@@ -237,7 +240,8 @@ async def _handle_post_delivery(
     last_text = buyer_msgs[-1]["text"].lower()
     asking_for_help = any(
         kw in last_text
-        for kw in ["where", "credentials", "login", "password", "account", "received", "send"]
+        for kw in ["где", "данные", "логин", "пароль", "аккаунт", "получил", "отправь",
+                   "where", "credentials", "login", "password", "account", "received", "send"]
     )
     if not asking_for_help:
         return
@@ -248,10 +252,10 @@ async def _handle_post_delivery(
         return
 
     resend_text = (
-        f"✅ Your credentials were already sent in this chat!\n\n"
-        f"📧 Login: {sale['login']}\n"
-        f"🔑 Password: {sale['password']}\n\n"
-        f"Please leave a review — it means a lot to the seller! 🙏"
+        f"✅ Данные от аккаунта уже были отправлены в этот чат!\n\n"
+        f"📧 Логин: {sale['login']}\n"
+        f"🔑 Пароль: {sale['password']}\n\n"
+        f"Пожалуйста, оставьте отзыв — это очень важно для продавца! 🙏"
     )
     try:
         await funpay.send_message(
@@ -397,10 +401,10 @@ async def _complete_order(
         order.order_id, creds.login, bool(creds.password),
     )
     delivery_text = (
-        f"✅ Thank you for your purchase!\n\n"
-        f"📧 Login: {creds.login}\n"
-        f"🔑 Password: {creds.password}\n\n"
-        f"Please leave a review — it means a lot to the seller! 🙏"
+        f"✅ Спасибо за покупку!\n\n"
+        f"📧 Логин: {creds.login}\n"
+        f"🔑 Пароль: {creds.password}\n\n"
+        f"Пожалуйста, оставьте отзыв — это очень важно для продавца! 🙏"
     )
 
     message_sent = False
