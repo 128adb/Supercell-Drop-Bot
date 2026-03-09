@@ -46,29 +46,45 @@ def generate_bs(
     tag_clean = account_tag.lstrip("#")
     trophies = _trophies_k(stats.trophies)
 
+    # ── Parties optionnelles du titre : on n'affiche que ce qui est > 0 ───────
+    hc = stats.hypercharge_count
+    hc_ru  = f" ⚡ {hc} ГИПЕРЗАРЯД" if hc else ""
+    hc_en  = f" ⚡ {hc} HYPERCHARGE" if hc else ""
+    leg_ru = f" 🌟 {stats.legendary_count} ЛЕГ" if stats.legendary_count else ""
+    leg_en = f" 🌟 {stats.legendary_count} LEG" if stats.legendary_count else ""
+    inact_ru = " | ОТЛЁГА" if inactivity_days else ""
+    inact_en = " | INACTIVE" if inactivity_days else ""
+
+    # ── Titre : valoriser les points forts, jamais de "(0 LEG)" ──────────────
     title_ru = (
-        f"АВТОВЫДАЧА 🔥 {stats.total_brawlers} БОЙЦОВ ({stats.legendary_count} ЛЕГ) 🔥 "
-        f"{trophies} КУБКОВ 🔥 {stats.max11_count} - {stats.max10_count} СИЛ 🔥"
-        + (" ОТЛЁГА 🔥" if inactivity_days else "")
+        f"АВТОВЫДАЧА ⚡ {stats.total_brawlers} БОЙЦОВ 🏆 {trophies} КУБКОВ"
+        f" 💥 {stats.max11_count} МАКС СИЛА{leg_ru}{hc_ru}{inact_ru}"
     )
     title_en = (
-        f"AUTO-DELIVERY 🔥 {stats.total_brawlers} BRAWLERS ({stats.legendary_count} LEG) 🔥 "
-        f"{trophies} TROPHIES 🔥 {stats.max11_count} - {stats.max10_count} PWR 🔥"
-        + (" INACTIVE 🔥" if inactivity_days else "")
+        f"AUTO-DELIVERY ⚡ {stats.total_brawlers} BRAWLERS 🏆 {trophies} TROPHIES"
+        f" 💥 {stats.max11_count} MAX POWER{leg_en}{hc_en}{inact_en}"
     )
 
+    # ── Description : détail complet (on affiche tout, même les 0) ───────────
     desc_ru = _AUTO_DELIVERY_WARNING_RU
     if tag_clean:
         desc_ru += f"Тег аккаунта: #{tag_clean}\n"
         desc_ru += f"Статистика: https://brawltime.ninja/profile/{tag_clean}\n\n"
     desc_ru += (
-        f"🔥 {stats.total_brawlers} БОЙЦОВ ({stats.legendary_count} ЛЕГЕНДАРОК) 🔥\n"
-        f"🔥 {stats.max11_count} - {stats.max10_count} СИЛ 🔥\n\n"
-        f"✅ ДАННЫЕ ВЫДАЮТСЯ МОМЕНТАЛЬНО ✅\n"
-        f"✅ ТЕЛЕФОН НЕ ПРИВЯЗАН ✅\n"
+        f"💥 {stats.total_brawlers} БОЙЦОВ\n"
+        f"🏆 {trophies} КУБКОВ\n"
+        f"⚡ {stats.max11_count} МАКС СИЛА (СИЛ 10: {stats.max10_count})\n"
     )
+    if hc:
+        desc_ru += f"🌩 {hc} ГИПЕРЗАРЯДА\n"
+    if stats.legendary_count:
+        desc_ru += f"🌟 {stats.legendary_count} ЛЕГЕНДАРОК\n"
     if inactivity_days:
-        desc_ru += f"✅ ОТЛЁГА {inactivity_days} дн ✅\n"
+        desc_ru += f"✅ ОТЛЁГА {inactivity_days} дн\n"
+    desc_ru += (
+        "\n✅ ДАННЫЕ ВЫДАЮТСЯ МОМЕНТАЛЬНО ✅\n"
+        "✅ ТЕЛЕФОН НЕ ПРИВЯЗАН ✅\n"
+    )
     desc_ru += _DISCLAIMER_RU
 
     desc_en = _AUTO_DELIVERY_WARNING_EN
@@ -76,13 +92,20 @@ def generate_bs(
         desc_en += f"Account tag: #{tag_clean}\n"
         desc_en += f"Stats: https://brawltime.ninja/profile/{tag_clean}\n\n"
     desc_en += (
-        f"🔥 {stats.total_brawlers} BRAWLERS ({stats.legendary_count} LEGENDARIES) 🔥\n"
-        f"🔥 {stats.max11_count} - {stats.max10_count} POWER 🔥\n\n"
-        f"✅ CREDENTIALS DELIVERED INSTANTLY ✅\n"
-        f"✅ NO PHONE LINKED ✅\n"
+        f"💥 {stats.total_brawlers} BRAWLERS\n"
+        f"🏆 {trophies} TROPHIES\n"
+        f"⚡ {stats.max11_count} MAX POWER (PWR 10: {stats.max10_count})\n"
     )
+    if hc:
+        desc_en += f"🌩 {hc} HYPERCHARGE(S)\n"
+    if stats.legendary_count:
+        desc_en += f"🌟 {stats.legendary_count} LEGENDARIES\n"
     if inactivity_days:
-        desc_en += f"✅ INACTIVE {inactivity_days} days ✅\n"
+        desc_en += f"✅ INACTIVE {inactivity_days} days\n"
+    desc_en += (
+        "\n✅ CREDENTIALS DELIVERED INSTANTLY ✅\n"
+        "✅ NO PHONE LINKED ✅\n"
+    )
     desc_en += _DISCLAIMER_EN
 
     return title_ru, title_en, desc_ru, desc_en

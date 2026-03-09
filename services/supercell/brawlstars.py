@@ -11,8 +11,9 @@ class BSStats:
     highest_trophies: int
     total_brawlers: int
     legendary_count: int
-    max11_count: int   # power level 11
-    max10_count: int   # power level 10
+    max11_count: int        # power level 11 (max)
+    max10_count: int        # power level 10
+    hypercharge_count: int  # brawlers with hypercharge unlocked
 
 
 async def get_stats(tag: str, api_key: str) -> BSStats:
@@ -30,6 +31,7 @@ async def get_stats(tag: str, api_key: str) -> BSStats:
     legendary_count = 0
     max11_count = 0
     max10_count = 0
+    hypercharge_count = 0
 
     for b in brawlers:
         rarity = b.get("rarity", {}).get("name", "").lower()
@@ -40,6 +42,9 @@ async def get_stats(tag: str, api_key: str) -> BSStats:
             max11_count += 1
         elif power == 10:
             max10_count += 1
+        # Hypercharge: API exposes it as a dict under "hypercharge" when unlocked
+        if b.get("hypercharge"):
+            hypercharge_count += 1
 
     return BSStats(
         trophies=data.get("trophies", 0),
@@ -48,4 +53,5 @@ async def get_stats(tag: str, api_key: str) -> BSStats:
         legendary_count=legendary_count,
         max11_count=max11_count,
         max10_count=max10_count,
+        hypercharge_count=hypercharge_count,
     )
