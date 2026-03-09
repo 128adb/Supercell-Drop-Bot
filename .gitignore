@@ -1,0 +1,42 @@
+# ─── Secrets & config ─────────────────────────────────────────────────────────
+.env
+
+# ─── Database (contains user credentials and sale history) ────────────────────
+*.db
+*.sqlite
+*.sqlite3
+bot.db
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ─── Virtual environments ─────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+
+# ─── Logs & debug files ───────────────────────────────────────────────────────
+*.log
+error_funpay.html
+debug_profile.html
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+
+# ─── Claude Code ──────────────────────────────────────────────────────────────
+.claude/
