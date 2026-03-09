@@ -46,7 +46,7 @@ async def list_lot(
     Raises:
         ValueError with a user-friendly message on any failure.
     """
-    # ── Step 1: Save to DB ────────────────────────────────────────────────────
+    # ── Step 1: Save to DB (preliminary — desc_ru filled after step 3) ────────
     lot_id = await crud.create_lot(
         user_id=user_id,
         lolz_lot_url=url,
@@ -70,6 +70,9 @@ async def list_lot(
     title_ru, title_en, desc_ru, desc_en = templates.generate(
         lot_data.game, stats, lot_data.inactivity_days, lot_data.account_tag
     )
+
+    # Save the Russian description so the seller has account context in chat notifications
+    await _execute("UPDATE lots SET desc_ru = ? WHERE id = ?", (desc_ru, lot_id))
 
     # ── Step 4: Create Funpay lot ─────────────────────────────────────────────
     try:

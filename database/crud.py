@@ -65,14 +65,15 @@ async def create_lot(
     lolz_price: float,
     funpay_price: float,
     funpay_lot_id: str = "",
+    desc_ru: str = "",
 ) -> int:
     return await _execute(
         """INSERT INTO lots
            (user_id, lolz_lot_url, lolz_lot_id, game, account_tag,
-            lolz_price, funpay_price, funpay_lot_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            lolz_price, funpay_price, funpay_lot_id, desc_ru)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (user_id, lolz_lot_url, lolz_lot_id, game, account_tag,
-         lolz_price, funpay_price, funpay_lot_id),
+         lolz_price, funpay_price, funpay_lot_id, desc_ru),
     )
 
 

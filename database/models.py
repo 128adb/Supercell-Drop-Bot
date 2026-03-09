@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS lots (
     account_tag     TEXT,
     lolz_price      REAL,
     funpay_price    REAL,
+    desc_ru         TEXT,
     status          TEXT DEFAULT 'active',
     error_count     INTEGER DEFAULT 0,
     sold_at         TIMESTAMP,
@@ -80,6 +81,7 @@ _MIGRATIONS = [
     "ALTER TABLE lots ADD COLUMN sold_at TIMESTAMP",
     "ALTER TABLE lots ADD COLUMN price_drop_count INTEGER DEFAULT 0",
     "ALTER TABLE lots ADD COLUMN last_price_drop TIMESTAMP",
+    "ALTER TABLE lots ADD COLUMN desc_ru TEXT",
 ]
 
 

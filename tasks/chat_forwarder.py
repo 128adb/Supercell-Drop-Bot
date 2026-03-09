@@ -97,12 +97,14 @@ async def run(bot: Bot) -> None:
                     chat.node_id, e,
                 )
 
-            # ── Lolzteam URL lookup ───────────────────────────────────────────
+            # ── Lolzteam URL + account description lookup ────────────────────
             lolz_url: str | None = None
+            lot_desc_ru: str | None = None
             if funpay_lot_id:
                 lot = await crud.get_lot_by_funpay_id_any(funpay_lot_id)
                 if lot:
                     lolz_url = lot.get("lolz_lot_url")
+                    lot_desc_ru = lot.get("desc_ru") or None
 
             # ── Send Telegram notification ────────────────────────────────────
             await _notify(
@@ -113,6 +115,7 @@ async def run(bot: Bot) -> None:
                 lot_title=lot_title,
                 last_msg=last_msg,
                 lolz_url=lolz_url,
+                lot_desc_ru=lot_desc_ru,
             )
 
             # Mark as seen so we don't re-forward on the next cycle
@@ -127,6 +130,7 @@ async def _notify(
     lot_title: str,
     last_msg: str,
     lolz_url: str | None,
+    lot_desc_ru: str | None = None,
 ) -> None:
     """Build and send the Telegram notification for one incoming chat message."""
 
@@ -145,6 +149,21 @@ async def _notify(
         links.append(f"[Lolzteam source]({lolz_url})")
     if links:
         lines.append("🔗 " + " · ".join(links))
+
+    # Account info box — show the first meaningful lines of the description
+    # so the seller has the key facts (email domain, phone status, trophies…)
+    # right at hand before replying.
+    if lot_desc_ru:
+        info_lines = [
+            ln.strip() for ln in lot_desc_ru.splitlines()
+            if ln.strip() and not ln.strip().startswith("──")
+        ][:6]  # up to 6 lines
+        if info_lines:
+            lines.append("")
+            lines.append("📋 *Account info:*")
+            lines.append("```")
+            lines.extend(info_lines)
+            lines.append("```")
 
     lines.append("")
 
