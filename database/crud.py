@@ -84,6 +84,16 @@ async def get_lot_by_funpay_id(funpay_lot_id: str) -> dict | None:
     )
 
 
+async def get_lot_by_funpay_id_any(funpay_lot_id: str) -> dict | None:
+    """Look up a lot by funpay_lot_id regardless of status.
+    Used by chat_forwarder to retrieve the Lolzteam source URL for any lot,
+    even if it has already been sold or deleted."""
+    return await _fetchone(
+        "SELECT * FROM lots WHERE funpay_lot_id = ? ORDER BY id DESC LIMIT 1",
+        (funpay_lot_id,),
+    )
+
+
 async def get_lot_by_account_tag(account_tag: str) -> dict | None:
     """Look up a lot by account tag for order delivery.
     Includes 'invalid' lots to handle the race between validity checker and order monitor."""

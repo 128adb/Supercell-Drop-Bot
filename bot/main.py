@@ -8,7 +8,7 @@ import config
 from database.models import init_db
 from bot.handlers import start, settings, lots, watchlist
 from services import web_dashboard
-from tasks import order_monitor, auto_bump, price_dropper, watchlist_monitor
+from tasks import order_monitor, auto_bump, price_dropper, watchlist_monitor, chat_forwarder
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -68,8 +68,16 @@ async def main() -> None:
         id="watchlist_monitor",
         max_instances=1,
     )
+    scheduler.add_job(
+        chat_forwarder.run,
+        trigger="interval",
+        seconds=30,
+        args=[bot],
+        id="chat_forwarder",
+        max_instances=1,
+    )
     scheduler.start()
-    log.info("Scheduler started (order_monitor, auto_bump, price_dropper, watchlist_monitor)")
+    log.info("Scheduler started (order_monitor, auto_bump, price_dropper, watchlist_monitor, chat_forwarder)")
 
     # Start local web dashboard
     try:

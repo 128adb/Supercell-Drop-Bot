@@ -819,6 +819,155 @@ async def update_lot_price(
                 raise FunpayError(f"Failed to update price for lot {lot_id}: HTTP {resp.status}")
 
 
+@dataclass
+class ChatPreview:
+    """A chat entry from the FunPay /chat/ inbox."""
+    node_id: str
+    sender: str
+    last_message: str
+    lot_title: str       # "Viewing …" context shown by FunPay, may be empty
+    funpay_lot_id: str   # associated offer ID extracted from the page, may be empty
+    unread_count: int
+
+
+async def get_unread_chats(
+    golden_key: str, proxy: Optional[str] = None
+) -> list[ChatPreview]:
+    """
+    Fetch /chat/ and return only the contact items that have unread messages.
+
+    FunPay renders the chat list in server-side HTML: each conversation is a
+    .contact-item div with a data-id attribute (the chat node ID).  Unread
+    conversations have a visible badge element with the unread count.
+    """
+    async with aiohttp.ClientSession(headers=_session_headers(golden_key)) as session:
+        async with session.get(
+            f"{FUNPAY_BASE}/chat/",
+            proxy=_make_proxy(proxy),
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as resp:
+            html = await resp.text()
+
+    soup = BeautifulSoup(html, "lxml")
+    result: list[ChatPreview] = []
+
+    for item in soup.select(".contact-item"):
+        # Unread indicator — FunPay uses a .badge or data-unread attribute
+        badge = item.select_one(".badge, .unread-count")
+        try:
+            unread_count = int(badge.get_text(strip=True)) if badge else 0
+        except (ValueError, AttributeError):
+            unread_count = 1 if badge else 0
+
+        if unread_count == 0:
+            continue
+
+        node_id = item.get("data-id", "").strip()
+        if not node_id:
+            continue
+
+        # Sender username
+        sender_el = (
+            item.select_one(".chat-name")
+            or item.select_one(".contact-item-username")
+            or item.select_one(".username")
+        )
+        sender = sender_el.get_text(strip=True) if sender_el else "Unknown"
+
+        # Message preview
+        text_el = (
+            item.select_one(".link-muted")
+            or item.select_one(".contact-item-text")
+            or item.select_one(".last-message")
+        )
+        last_msg = text_el.get_text(strip=True) if text_el else ""
+
+        # Lot title shown in the contact item (e.g. "Viewing: BS account …")
+        title_el = (
+            item.select_one(".contact-item-offer")
+            or item.select_one(".offer-title")
+            or item.select_one(".contact-item-title")
+        )
+        lot_title = title_el.get_text(strip=True) if title_el else ""
+
+        # Try to find an offer ID embedded in this item's HTML
+        item_html = str(item)
+        funpay_lot_id = ""
+        m = re.search(r'offer\?id=(\d+)', item_html) or re.search(r'offer[=&](\d{5,})', item_html)
+        if m:
+            funpay_lot_id = m.group(1)
+
+        result.append(ChatPreview(
+            node_id=node_id,
+            sender=sender,
+            last_message=last_msg,
+            lot_title=lot_title,
+            funpay_lot_id=funpay_lot_id,
+            unread_count=unread_count,
+        ))
+
+    return result
+
+
+async def get_chat_detail(
+    golden_key: str, node_id: str, proxy: Optional[str] = None
+) -> tuple[str, str, list[dict]]:
+    """
+    Fetch /chat/?node=NODE_ID.
+
+    Returns:
+        funpay_lot_id  — offer ID associated with this chat (may be empty)
+        lot_title      — lot title / "Viewing" context (may be empty)
+        messages       — list of {sender, text} dicts (newest last)
+    """
+    async with aiohttp.ClientSession(headers=_session_headers(golden_key)) as session:
+        async with session.get(
+            f"{FUNPAY_BASE}/chat/?node={node_id}",
+            proxy=_make_proxy(proxy),
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as resp:
+            html = await resp.text()
+
+    soup = BeautifulSoup(html, "lxml")
+
+    # ── Extract offer ID from any lot link on the page ────────────────────────
+    funpay_lot_id = ""
+    m = re.search(r'/lots/offer\?id=(\d+)', html) or re.search(r'offer\?id=(\d+)', html)
+    if m:
+        funpay_lot_id = m.group(1)
+
+    # ── Lot title / "Viewing" subject ─────────────────────────────────────────
+    lot_title = ""
+    for sel in [".chat-offer-link", ".offer-title", ".subject",
+                ".chat-subject", ".contact-item-title", ".offer-name",
+                ".chat-header-subject"]:
+        el = soup.select_one(sel)
+        if el:
+            lot_title = el.get_text(strip=True)
+            break
+    # Fallback: look for the literal "Viewing" text pattern in raw HTML
+    if not lot_title:
+        mv = re.search(r'Viewing[:\s]+([^\n<"]{5,})', html)
+        if mv:
+            lot_title = mv.group(1).strip()
+
+    # ── Chat messages (same structure as order pages) ─────────────────────────
+    messages: list[dict] = []
+    for item in soup.select(".chat-msg-item"):
+        if item.select_one(".chat-msg-author-label"):   # system note → skip
+            continue
+        text_el = item.select_one(".chat-msg-text")
+        if not text_el:
+            continue
+        sender_el = item.select_one(".chat-msg-author-link")
+        messages.append({
+            "sender": sender_el.get_text(strip=True) if sender_el else "unknown",
+            "text": text_el.get_text(strip=True),
+        })
+
+    return funpay_lot_id, lot_title, messages
+
+
 async def bump_lots(
     golden_key: str,
     games: list[str],
