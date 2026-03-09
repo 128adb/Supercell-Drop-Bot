@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import config
 from database.models import init_db
-from bot.handlers import start, settings, lots, watchlist
+from bot.handlers import start, settings, lots, watchlist, chat_reply
 from services import web_dashboard
 from tasks import order_monitor, auto_bump, price_dropper, watchlist_monitor, chat_forwarder
 
@@ -33,6 +33,7 @@ async def main() -> None:
     dp.include_router(settings.router)
     dp.include_router(lots.router)
     dp.include_router(watchlist.router)
+    dp.include_router(chat_reply.router)
 
     # Setup APScheduler
     scheduler = AsyncIOScheduler()

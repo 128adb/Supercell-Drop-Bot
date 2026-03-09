@@ -968,6 +968,100 @@ async def get_chat_detail(
     return funpay_lot_id, lot_title, messages
 
 
+async def send_chat_message(
+    golden_key: str,
+    node_id: str,
+    text: str,
+    proxy: Optional[str] = None,
+) -> None:
+    """
+    Send a message to a FunPay pre-sale chat node directly (no order_id needed).
+
+    Use this for pre-sale / general chats (/chat/?node=NODE_ID).
+    For order chats use send_message() instead.
+
+    The flow is identical to send_message() but step 2 (fetching the order
+    page to discover chat_node_id) is skipped — we already have the node_id.
+    """
+    proxy_str = _make_proxy(proxy)
+    timeout = aiohttp.ClientTimeout(total=15)
+
+    jar = aiohttp.CookieJar()
+    jar.update_cookies({"golden_key": golden_key}, URL(FUNPAY_BASE))
+
+    base_headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8",
+        "Referer": FUNPAY_BASE,
+    }
+
+    async with aiohttp.ClientSession(headers=base_headers, cookie_jar=jar) as session:
+
+        # Step 1: GET home → real PHPSESSID + CSRF token
+        async with session.get(FUNPAY_BASE, proxy=proxy_str, timeout=timeout) as resp:
+            home_html = await resp.text()
+        csrf_token = _extract_csrf_token(home_html)
+
+        node_id_int = int(node_id)
+
+        # Step 2: POST to /runner/ — send the message
+        runner_headers = {
+            "Referer": f"{FUNPAY_BASE}/chat/?node={node_id}",
+            "Origin": FUNPAY_BASE,
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "*/*",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        }
+
+        send_objects = json.dumps([{
+            "type": "chat_node",
+            "id": node_id_int,
+            "tag": "00000000",
+            "data": {
+                "node": node_id_int,
+                "last_message": -1,
+                "content": "",
+            },
+        }])
+        send_request = json.dumps({
+            "action": "chat_message",
+            "data": {
+                "node": node_id_int,
+                "last_message": -1,
+                "content": text,
+            },
+        })
+
+        async with session.post(
+            f"{FUNPAY_BASE}/runner/",
+            data={
+                "csrf_token": csrf_token,
+                "objects": send_objects,
+                "request": send_request,
+            },
+            proxy=proxy_str,
+            headers=runner_headers,
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as resp:
+            if resp.status not in (200, 302):
+                raise FunpayError(
+                    f"send_chat_message: runner returned HTTP {resp.status} for node {node_id}"
+                )
+            body = await resp.text()
+            try:
+                rdata = json.loads(body)
+                if isinstance(rdata, dict) and (rdata.get("error") or rdata.get("errors")):
+                    raise FunpayError(f"send_chat_message runner error: {rdata}")
+            except (json.JSONDecodeError, TypeError):
+                pass  # non-JSON response is fine
+
+        _log.debug("send_chat_message: sent to node %s", node_id)
+
+
 async def bump_lots(
     golden_key: str,
     games: list[str],

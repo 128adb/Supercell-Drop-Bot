@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from aiogram import Bot
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from database import crud
 from services import funpay
@@ -133,7 +134,6 @@ async def _notify(
 
     # Lot context
     if lot_title:
-        # Trim to keep the notification concise
         trimmed = lot_title[:80] + ("…" if len(lot_title) > 80 else "")
         lines.append(f"👀 _{trimmed}_")
 
@@ -152,8 +152,17 @@ async def _notify(
     trimmed_msg = last_msg[:300] + ("…" if len(last_msg) > 300 else "")
     lines.append(f'"{trimmed_msg}"')
 
-    lines.append("")
-    lines.append(f"[💬 Open chat on FunPay](https://funpay.com/chat/?node={chat.node_id})")
+    # Inline keyboard: Reply button + Open chat link button
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text=f"✏️ Reply to {chat.sender}",
+            callback_data=f"reply_chat:{chat.node_id}",
+        ),
+        InlineKeyboardButton(
+            text="🔗 Open chat",
+            url=f"https://funpay.com/chat/?node={chat.node_id}",
+        ),
+    ]])
 
     try:
         await bot.send_message(
@@ -161,6 +170,7 @@ async def _notify(
             "\n".join(lines),
             parse_mode="Markdown",
             disable_web_page_preview=True,
+            reply_markup=keyboard,
         )
         log.info(
             "chat_forwarder: forwarded msg from %s (node=%s, lot=%s) to user %s",

@@ -21,3 +21,7 @@ class DeleteLotState(StatesGroup):
 
 class LotState(StatesGroup):
     waiting_account_tag = State()  # when tag couldn't be extracted automatically
+
+
+class ChatReplyState(StatesGroup):
+    waiting_reply = State()  # seller is typing a reply to a FunPay chat message
